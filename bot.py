@@ -3,105 +3,100 @@ import telebot
 import time
 import threading
 
-print("🚀 Bot starting...")
+print("馃殌 Bot starting...")
 
 TOKEN = os.getenv("BOT_TOKEN")
 
 if not TOKEN:
-    print("❌ BOT_TOKEN missing")
+    print("鉂� BOT_TOKEN is missing")
     exit()
 
 bot = telebot.TeleBot(TOKEN)
 
 
-# --- время ---
-def parse_time(t):
+# ---------- TIME PARSER ----------
+def parse_time(text):
     try:
-        if t.endswith("m"):
-            return int(t[:-1]) * 60
-        if t.endswith("h"):
-            return int(t[:-1]) * 3600
-        if t.endswith("d"):
-            return int(t[:-1]) * 86400
+        if text.endswith("m"):
+            return int(text[:-1]) * 60
+        if text.endswith("h"):
+            return int(text[:-1]) * 3600
+        if text.endswith("d"):
+            return int(text[:-1]) * 86400
     except:
         return None
 
 
-# --- разбан ---
-def unban(chat_id, user_id, sec):
-    time.sleep(sec)
-    try:
-        bot.unban_chat_member(chat_id, user_id)
-    except:
-        pass
-
-
-# --- размут ---
-def unmute(chat_id, user_id, sec):
-    time.sleep(sec)
+# ---------- UNMUTE ----------
+def unmute(chat_id, user_id, seconds):
+    time.sleep(seconds)
     try:
         bot.restrict_chat_member(chat_id, user_id, can_send_messages=True)
-    except:
-        pass
+    except Exception as e:
+        print("Unmute error:", e)
 
 
-# --- БАН ---
-@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith("бан"))
-def ban(m):
-    if not m.reply_to_message:
-        bot.reply_to(m, "Ответь на сообщение пользователя")
-        return
-
-    args = m.text.split()
-    if len(args) < 2:
-        bot.reply_to(m, "Формат: бан 10m / 1h / 1d")
-        return
-
-    sec = parse_time(args[1])
-    if not sec:
-        bot.reply_to(m, "Неверное время")
-        return
-
-    uid = m.reply_to_message.from_user.id
-    cid = m.chat.id
-
-    bot.kick_chat_member(cid, uid)
-    bot.reply_to(m, f"🚫 Бан на {args[1]}")
-
-    threading.Thread(target=unban, args=(cid, uid, sec)).start()
+# ---------- UNBAN ----------
+def unban(chat_id, user_id, seconds):
+    time.sleep(seconds)
+    try:
+        bot.unban_chat_member(chat_id, user_id)
+    except Exception as e:
+        print("Unban error:", e)
 
 
-# --- МУТ ---
-@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith("мут"))
-def mute(m):
-    if not m.reply_to_message:
-        bot.reply_to(m, "Ответь на сообщение пользователя")
-        return
+# ---------- MUTE ----------
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith("屑褍褌"))
+def mute(message):
+    if not message.reply_to_message:
+        return bot.reply_to(message, "袨褌胁械褌褜 薪邪 锌芯谢褜蟹芯胁邪褌械谢褟")
 
-    args = m.text.split()
-    if len(args) < 2:
-        bot.reply_to(m, "Формат: мут 10m / 1h / 1d")
-        return
+    parts = message.text.split()
+    if len(parts) < 2:
+        return bot.reply_to(message, "肖芯褉屑邪褌: 屑褍褌 10m / 1h / 1d")
 
-    sec = parse_time(args[1])
-    if not sec:
-        bot.reply_to(m, "Неверное время")
-        return
+    seconds = parse_time(parts[1])
+    if not seconds:
+        return bot.reply_to(message, "袧械胁械褉薪芯械 胁褉械屑褟")
 
-    uid = m.reply_to_message.from_user.id
-    cid = m.chat.id
+    chat_id = message.chat.id
+    user_id = message.reply_to_message.from_user.id
 
-    bot.restrict_chat_member(cid, uid, can_send_messages=False)
-    bot.reply_to(m, f"🔇 Мут на {args[1]}")
+    bot.restrict_chat_member(chat_id, user_id, can_send_messages=False)
+    bot.reply_to(message, f"馃攪 屑褍褌 薪邪 {parts[1]}")
 
-    threading.Thread(target=unmute, args=(cid, uid, sec)).start()
+    threading.Thread(target=unmute, args=(chat_id, user_id, seconds)).start()
 
 
-# --- старт ---
+# ---------- BAN ----------
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith("斜邪薪"))
+def ban(message):
+    if not message.reply_to_message:
+        return bot.reply_to(message, "袨褌胁械褌褜 薪邪 锌芯谢褜蟹芯胁邪褌械谢褟")
+
+    parts = message.text.split()
+    if len(parts) < 2:
+        return bot.reply_to(message, "肖芯褉屑邪褌: 斜邪薪 10m / 1h / 1d")
+
+    seconds = parse_time(parts[1])
+    if not seconds:
+        return bot.reply_to(message, "袧械胁械褉薪芯械 胁褉械屑褟")
+
+    chat_id = message.chat.id
+    user_id = message.reply_to_message.from_user.id
+
+    bot.kick_chat_member(chat_id, user_id)
+    bot.reply_to(message, f"馃毇 斜邪薪 薪邪 {parts[1]}")
+
+    threading.Thread(target=unban, args=(chat_id, user_id, seconds)).start()
+
+
+# ---------- START ----------
 @bot.message_handler(commands=["start"])
-def start(m):
-    bot.reply_to(m, "бот работает ✅")
+def start(message):
+    bot.reply_to(message, "斜芯褌 褉邪斜芯褌邪械褌 鉁�")
 
-print("🤖 polling started")
+
+print("馃 polling started")
 
 bot.infinity_polling(skip_pending=True)
