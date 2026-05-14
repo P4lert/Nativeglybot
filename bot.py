@@ -1,102 +1,81 @@
 import os
 import telebot
 import time
-import threading
 
 print("🚀 Bot starting...")
 
 TOKEN = os.getenv("BOT_TOKEN")
 
 if not TOKEN:
-    print("❌ BOT_TOKEN is missing")
+    print("NO TOKEN")
     exit()
 
 bot = telebot.TeleBot(TOKEN)
 
 
-# ---------- TIME PARSER ----------
-def parse_time(text):
+def parse_time(t):
     try:
-        if text.endswith("m"):
-            return int(text[:-1]) * 60
-        if text.endswith("h"):
-            return int(text[:-1]) * 3600
-        if text.endswith("d"):
-            return int(text[:-1]) * 86400
+        if t.endswith("m"):
+            return int(t[:-1]) * 60
+        if t.endswith("h"):
+            return int(t[:-1]) * 3600
+        if t.endswith("d"):
+            return int(t[:-1]) * 86400
     except:
         return None
 
 
-# ---------- UNMUTE ----------
-def unmute(chat_id, user_id, seconds):
-    time.sleep(seconds)
+@bot.message_handler(func=lambda m: m.text and m.text.startswith("мут"))
+def mute(m):
+    if not m.reply_to_message:
+        return bot.reply_to(m, "reply на пользователя")
+
+    sec = parse_time(m.text.split()[1])
+    if not sec:
+        return bot.reply_to(m, "ошибка времени")
+
+    uid = m.reply_to_message.from_user.id
+    cid = m.chat.id
+
     try:
-        bot.restrict_chat_member(chat_id, user_id, can_send_messages=True)
+        bot.restrict_chat_member(cid, uid, can_send_messages=False)
+        bot.reply_to(m, "🔇 мут")
+
+        time.sleep(sec)
+
+        bot.restrict_chat_member(cid, uid, can_send_messages=True)
+
     except Exception as e:
-        print("Unmute error:", e)
+        print("mute error:", e)
 
 
-# ---------- UNBAN ----------
-def unban(chat_id, user_id, seconds):
-    time.sleep(seconds)
+@bot.message_handler(func=lambda m: m.text and m.text.startswith("бан"))
+def ban(m):
+    if not m.reply_to_message:
+        return bot.reply_to(m, "reply на пользователя")
+
+    sec = parse_time(m.text.split()[1])
+    if not sec:
+        return bot.reply_to(m, "ошибка времени")
+
+    uid = m.reply_to_message.from_user.id
+    cid = m.chat.id
+
     try:
-        bot.unban_chat_member(chat_id, user_id)
+        bot.kick_chat_member(cid, uid)
+        bot.reply_to(m, "🚫 бан")
+
+        time.sleep(sec)
+
+        bot.unban_chat_member(cid, uid)
+
     except Exception as e:
-        print("Unban error:", e)
+        print("ban error:", e)
 
 
-# ---------- MUTE ----------
-@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith("мут"))
-def mute(message):
-    if not message.reply_to_message:
-        return bot.reply_to(message, "Ответь на пользователя")
-
-    parts = message.text.split()
-    if len(parts) < 2:
-        return bot.reply_to(message, "Формат: мут 10m / 1h / 1d")
-
-    seconds = parse_time(parts[1])
-    if not seconds:
-        return bot.reply_to(message, "Неверное время")
-
-    chat_id = message.chat.id
-    user_id = message.reply_to_message.from_user.id
-
-    bot.restrict_chat_member(chat_id, user_id, can_send_messages=False)
-    bot.reply_to(message, f"🔇 мут на {parts[1]}")
-
-    threading.Thread(target=unmute, args=(chat_id, user_id, seconds)).start()
-
-
-# ---------- BAN ----------
-@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith("бан"))
-def ban(message):
-    if not message.reply_to_message:
-        return bot.reply_to(message, "Ответь на пользователя")
-
-    parts = message.text.split()
-    if len(parts) < 2:
-        return bot.reply_to(message, "Формат: бан 10m / 1h / 1d")
-
-    seconds = parse_time(parts[1])
-    if not seconds:
-        return bot.reply_to(message, "Неверное время")
-
-    chat_id = message.chat.id
-    user_id = message.reply_to_message.from_user.id
-
-    bot.kick_chat_member(chat_id, user_id)
-    bot.reply_to(message, f"🚫 бан на {parts[1]}")
-
-    threading.Thread(target=unban, args=(chat_id, user_id, seconds)).start()
-
-
-# ---------- START ----------
 @bot.message_handler(commands=["start"])
-def start(message):
-    bot.reply_to(message, "бот работает ✅")
+def start(m):
+    bot.reply_to(m, "бот работает ✅")
 
-
-print("🤖 polling started")
 
 bot.infinity_polling(skip_pending=True)
